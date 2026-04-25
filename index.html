@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ Футбол!</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Fredoka One',cursive;
+  background:#1a6b2a;
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;overflow:hidden;user-select:none;
+}
+
+#overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.panel{display:none;flex-direction:column;align-items:center;gap:14px;
+  background:rgba(8,35,12,0.97);border-radius:24px;padding:30px 38px;
+  box-shadow:0 12px 40px rgba(0,0,0,.65);pointer-events:all;text-align:center;}
+.panel.show{display:flex;}
+
+.logo{font-size:64px;animation:lb .7s infinite alternate;}
+@keyframes lb{from{transform:translateY(0) rotate(-5deg);}to{transform:translateY(-14px) rotate(5deg);}}
+.gtitle{font-size:52px;color:#ffe234;text-shadow:4px 4px 0 #8a6000,6px 6px 0 rgba(0,0,0,.3);line-height:1;}
+.tagline{font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;color:#a0f0a0;}
+
+.btn{font-family:'Fredoka One',cursive;font-size:22px;padding:12px 36px;
+  border:none;border-radius:50px;cursor:pointer;
+  box-shadow:0 5px 0 rgba(0,0,0,.35);transition:transform .1s,box-shadow .1s;}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.35);}
+.btn-y{background:#ffe234;color:#1a3a0a;}
+.btn-g{background:#dce3e8;color:#2c3e50;}
+
+.diff-row{display:flex;gap:8px;}
+.diff-btn{font-family:'Fredoka One',cursive;font-size:15px;padding:7px 16px;
+  border:2px solid rgba(255,255,255,.35);border-radius:28px;
+  cursor:pointer;background:transparent;color:#fff;transition:all .15s;}
+.diff-btn.sel{background:#ffe234;color:#1a3a0a;border-color:#ffe234;}
+
+.hint-box{background:rgba(255,255,255,.08);border-radius:14px;padding:11px 18px;
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;color:#b0f0b0;line-height:1.85;}
+
+.res-em{font-size:76px;animation:rb .5s infinite alternate;}
+@keyframes rb{from{transform:scale(1) rotate(-4deg);}to{transform:scale(1.1) rotate(4deg);}}
+.res-ti{font-size:46px;color:#ffe234;text-shadow:3px 3px 0 #8a6000;}
+.res-su{font-family:'Nunito',sans-serif;font-weight:700;font-size:17px;color:#b0f8b0;}
+.brow{display:flex;gap:12px;}
+
+#hud{position:fixed;top:0;left:0;right:0;display:none;align-items:center;
+  justify-content:space-between;padding:7px 18px;
+  background:rgba(0,0,0,.58);backdrop-filter:blur(5px);z-index:50;color:#fff;font-size:20px;}
+#hud.show{display:flex;}
+.hs{font-size:25px;color:#ffe234;}
+.ht{color:#ff9f7f;font-size:17px;}
+.hh{font-family:'Nunito',sans-serif;font-weight:700;font-size:12px;color:#9df;text-align:center;}
+
+#gc{display:block;}
+
+#touch{position:fixed;bottom:12px;left:0;right:0;display:none;
+  justify-content:space-between;padding:0 14px;z-index:60;}
+#touch.show{display:flex;}
+.dpad{position:relative;width:112px;height:112px;}
+.dp{position:absolute;width:37px;height:37px;background:rgba(255,255,255,.2);
+  border:2px solid rgba(255,255,255,.4);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;touch-action:none;}
+.dp.on{background:rgba(255,255,255,.55);}
+#dU{top:0;left:37px;}#dD{bottom:0;left:37px;}#dL{top:37px;left:0;}#dR{top:37px;right:0;}
+.abtns{display:flex;flex-direction:column;gap:10px;align-items:flex-end;}
+.abtn{width:56px;height:56px;border-radius:50%;cursor:pointer;touch-action:none;
+  border:2px solid rgba(255,255,255,.4);background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;font-size:21px;}
+.abtn.on{background:rgba(255,255,255,.5);}
+
+.fw{position:fixed;font-size:34px;pointer-events:none;z-index:300;
+  animation:fwa 1.4s ease-out forwards;}
+@keyframes fwa{0%{opacity:1;transform:scale(0) translateY(0);}
+  55%{transform:scale(1.6) translateY(-55px);opacity:1;}
+  100%{transform:scale(.5) translateY(-115px);opacity:0;}}
+</style>
+</head>
+<body>
+<canvas id="gc"></canvas>
+
+<div id="hud">
+  <div>🟦 <span class="hs" id="sB">0</span></div>
+  <div style="text-align:center">
+    <div class="ht">⏱ <span id="sT">90</span>с</div>
+    <div class="hh" id="sH">WASD — рух • ПРОБІЛ — удар</div>
+  </div>
+  <div><span class="hs" id="sR">0</span> 🟥</div>
+</div>
+
+<div id="touch">
+  <div class="dpad">
+    <div class="dp" id="dU">▲</div><div class="dp" id="dD">▼</div>
+    <div class="dp" id="dL">◄</div><div class="dp" id="dR">►</div>
+  </div>
+  <div class="abtns">
+    <div class="abtn" id="aSpr">🏃</div>
+    <div class="abtn" id="aKck">⚡</div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="panel show" id="pStart">
+    <div class="logo">⚽</div>
+    <div class="gtitle">ФУТБОЛ!</div>
+    <div class="tagline">Привіт, Аділь! Грай і перемагай! 🏆</div>
+    <div class="diff-row">
+      <button class="diff-btn sel" data-d="easy">😊 Легко</button>
+      <button class="diff-btn"    data-d="medium">😤 Середній</button>
+      <button class="diff-btn"    data-d="hard">😈 Складно</button>
+    </div>
+    <div class="hint-box">
+      ⌨️ <b>WASD / стрілки</b> — рух гравця<br>
+      <b>Пробіл</b> — сильний удар по м'ячу<br>
+      <b>Shift</b> — спринт<br>
+      Просто підбіжи до м'яча, щоб штовхнути!
+    </div>
+    <button class="btn btn-y" id="bStart">▶ Грати!</button>
+  </div>
+  <div class="panel" id="pResult">
+    <div class="res-em" id="rEm">🏆</div>
+    <div class="res-ti" id="rTi">ПЕРЕМОГА!</div>
+    <div class="res-su" id="rSu"></div>
+    <div id="adilMsg" style="display:none;flex-direction:column;align-items:center;gap:6px;">
+      <div style="font-size:38px;">🎂🎉⭐🎈🏅</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:28px;color:#ffe234;text-shadow:3px 3px 0 #8a6000;">
+        Вітаємо, Аділь!
+      </div>
+      <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;color:#b0f8b0;line-height:1.7;max-width:280px;">
+        Ти справжній футбольний чемпіон!<br>
+        Так тримати, друже! ⚽🌟
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btn btn-y" id="bReplay">🔄 Ще раз</button>
+      <button class="btn btn-g" id="bMenu">🏠 Меню</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════
+const W=700, H=460;
+const GOAL_H=120, GOAL_D=20;
+const PR=13;   // player radius
+const BR=10;   // ball radius
+const FRIC_BALL=0.985;   // ball rolls smoothly
+const FRIC_BALL_GRASS=0.97; // normal friction
+const FRIC_PLR=0.78;
+
+const DIFFS={
+  easy:  {aiSpd:1.6, oppSpd:1.3, oppShoot:260, gameTime:90},
+  medium:{aiSpd:2.1, oppSpd:1.9, oppShoot:200, gameTime:90},
+  hard:  {aiSpd:2.6, oppSpd:2.5, oppShoot:160, gameTime:90},
+};
+let diff='easy';
+
+// ═══════════════════════════════════════════════
+// DOM
+// ═══════════════════════════════════════════════
+let gc,c,hud,touch;
+window.addEventListener('DOMContentLoaded',()=>{
+  gc=document.getElementById('gc');
+  c=gc.getContext('2d');
+  gc.width=W; gc.height=H;
+  hud=document.getElementById('hud');
+  touch=document.getElementById('touch');
+
+  document.querySelectorAll('.diff-btn').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('sel'));
+      b.classList.add('sel'); diff=b.dataset.d;
+    });
+  });
+  document.getElementById('bStart') .addEventListener('click',startGame);
+  document.getElementById('bReplay').addEventListener('click',startGame);
+  document.getElementById('bMenu')  .addEventListener('click',()=>{stopGame();panel('pStart');});
+  bindTouch();
+  drawField(); // idle background
+});
+
+// ═══════════════════════════════════════════════
+// PANEL
+// ═══════════════════════════════════════════════
+function panel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+  if(id) document.getElementById(id).classList.add('show');
+  const game=!id;
+  hud.classList.toggle('show',game);
+  touch.classList.toggle('show',game);
+}
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let raf=null,tiv=null,gameTime=90,sB=0,sR=0;
+let keys={},sprint=false,kickBtn=false,kickLock=false;
+let goalAnim=0,goalTeam='';
+let players=[], ball={};
+
+// ── BALL: always a free physics object ──
+function resetBall(){
+  ball.x=W/2; ball.y=H/2; ball.vx=0; ball.vy=0;
+  // small random nudge so it's not stuck perfectly center
+  ball.vx=(Math.random()-.5)*0.5;
+}
+
+// ── PLAYERS ──
+function initPlayers(){
+  players=[
+    // Blue (human = id 0)
+    mk(0,0,'human', 150, H/2,    '🧒'),
+    mk(1,0,'a_fw',  215, H/2-80, '🧑‍🦰'),
+    mk(2,0,'a_df',  85,  H/2+70, '🧔'),
+    mk(3,0,'a_gk',  24,  H/2,    '🧤'),
+    // Red (AI opponents)
+    mk(4,1,'o_fw',  W-215,H/2-80,'😈'),
+    mk(5,1,'o_md',  W-175,H/2+70,'👿'),
+    mk(6,1,'o_df',  W-110,H/2,   '😤'),
+    mk(7,1,'o_gk',  W-24, H/2,   '🥅'),
+  ];
+}
+function mk(id,team,role,x,y,em){
+  return{id,team,role,x,y,vx:0,vy:0,em,
+    kickCd:0,  // cooldown before this player can kick again
+  };
+}
+const START=[
+  [{x:150,y:H/2},{x:215,y:H/2-80},{x:85,y:H/2+70},{x:24,y:H/2}],
+  [{x:W-215,y:H/2-80},{x:W-175,y:H/2+70},{x:W-110,y:H/2},{x:W-24,y:H/2}],
+];
+function resetPositions(){
+  resetBall();
+  [0,1].forEach(t=>{
+    players.filter(p=>p.team===t).forEach((p,i)=>{
+      const s=START[t][i]; p.x=s.x;p.y=s.y;p.vx=0;p.vy=0;p.kickCd=0;
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════
+// GAME LIFECYCLE
+// ═══════════════════════════════════════════════
+function startGame(){
+  const cfg=DIFFS[diff];
+  sB=0;sR=0;gameTime=cfg.gameTime;goalAnim=0;
+  document.getElementById('sB').textContent='0';
+  document.getElementById('sR').textContent='0';
+  document.getElementById('sT').textContent=gameTime;
+  panel(null);
+  initPlayers();
+  resetPositions();
+  if(tiv) clearInterval(tiv);
+  tiv=setInterval(()=>{
+    if(goalAnim>0) return;
+    gameTime--;
+    document.getElementById('sT').textContent=gameTime;
+    if(gameTime<=0){clearInterval(tiv);endGame();}
+  },1000);
+  if(raf) cancelAnimationFrame(raf);
+  loop();
+}
+function stopGame(){
+  if(raf){cancelAnimationFrame(raf);raf=null;}
+  if(tiv){clearInterval(tiv);tiv=null;}
+}
+function endGame(){
+  stopGame();
+  const won=sB>sR,draw=sB===sR;
+  document.getElementById('rEm').textContent=won?'🏆':draw?'🤝':'😢';
+  document.getElementById('rTi').textContent=won?'ПЕРЕМОГА!':draw?'НІЧИЯ!':'ПОРАЗКА!';
+  document.getElementById('rSu').textContent=`🟦 Сині ${sB} — ${sR} Червоні 🟥`;
+  const adilMsg=document.getElementById('adilMsg');
+  adilMsg.style.display=won?'flex':'none';
+  if(won){ fireworks(20); setTimeout(()=>fireworks(12),900); }
+  panel('pResult');
+}
+function scored(team){
+  if(team==='blue'){sB++;document.getElementById('sB').textContent=sB;}
+  else{sR++;document.getElementById('sR').textContent=sR;}
+  goalTeam=team;goalAnim=120;
+  fireworks(team==='blue'?8:2);
+  setTimeout(()=>{if(gameTime>0)resetPositions();},1900);
+}
+
+// ═══════════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════════
+window.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(e.code==='ShiftLeft'||e.code==='ShiftRight') sprint=true;
+  if((e.code==='Space'||e.code==='KeyZ')&&!kickLock){kickBtn=true;kickLock=true;}
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+});
+window.addEventListener('keyup',e=>{
+  keys[e.code]=false;
+  if(e.code==='ShiftLeft'||e.code==='ShiftRight') sprint=false;
+  if(e.code==='Space'||e.code==='KeyZ') kickLock=false;
+});
+
+function bindTouch(){
+  function td(id,dn,up){
+    const el=document.getElementById(id);
+    if(!el)return;
+    const d=e=>{e.preventDefault();dn();el.classList.add('on');};
+    const u=e=>{e.preventDefault();up();el.classList.remove('on');};
+    el.addEventListener('touchstart',d,{passive:false});
+    el.addEventListener('touchend',u,{passive:false});
+    el.addEventListener('mousedown',d);
+    el.addEventListener('mouseup',u);
+    el.addEventListener('mouseleave',u);
+  }
+  td('dU',()=>keys['ArrowUp']=true,   ()=>keys['ArrowUp']=false);
+  td('dD',()=>keys['ArrowDown']=true,  ()=>keys['ArrowDown']=false);
+  td('dL',()=>keys['ArrowLeft']=true,  ()=>keys['ArrowLeft']=false);
+  td('dR',()=>keys['ArrowRight']=true, ()=>keys['ArrowRight']=false);
+  td('aSpr',()=>sprint=true,            ()=>sprint=false);
+  td('aKck',()=>{if(!kickLock){kickBtn=true;kickLock=true;}},()=>kickLock=false);
+}
+
+// ═══════════════════════════════════════════════
+// LOOP
+// ═══════════════════════════════════════════════
+function loop(){
+  raf=requestAnimationFrame(loop);
+  if(goalAnim>0){goalAnim--;render();return;}
+  update();
+  render();
+}
+
+// ═══════════════════════════════════════════════
+// UPDATE — core physics, no "holding" mechanic
+// ═══════════════════════════════════════════════
+function update(){
+  const cfg=DIFFS[diff];
+  const human=players[0];
+
+  // tick cooldowns
+  players.forEach(p=>{if(p.kickCd>0)p.kickCd--;});
+
+  // ── HUMAN MOVE ──
+  const spd=sprint?2.8*1.7:2.8;
+  let dx=0,dy=0;
+  if(keys['ArrowLeft']||keys['KeyA'])  dx-=1;
+  if(keys['ArrowRight']||keys['KeyD']) dx+=1;
+  if(keys['ArrowUp']||keys['KeyW'])    dy-=1;
+  if(keys['ArrowDown']||keys['KeyS'])  dy+=1;
+  if(dx||dy){const l=Math.hypot(dx,dy);human.vx=dx/l*spd;human.vy=dy/l*spd;}
+  else{human.vx*=FRIC_PLR;human.vy*=FRIC_PLR;}
+  movePlayer(human);
+
+  // ── HUMAN KICK (Space) ──
+  if(kickBtn){
+    kickBtn=false;
+    if(human.kickCd===0){
+      const d=dist(human,ball);
+      if(d<PR+BR+18){
+        // Kick toward opponent goal
+        kickBall(human, W*2, H/2, 10.5);
+        human.kickCd=25;
+      }
+    }
+  }
+
+  // ── HUMAN auto-dribble: gentle push when walking into ball ──
+  if(human.kickCd===0){
+    ballPlayerCollide(human, 3.5);
+  }
+
+  // ── AI BLUE TEAMMATES ──
+  players.filter(p=>p.team===0&&p!==human).forEach(p=>aiBlue(p,cfg));
+
+  // ── AI RED ──
+  players.filter(p=>p.team===1).forEach(p=>aiRed(p,cfg));
+
+  // ── BALL PHYSICS ──
+  ball.x+=ball.vx; ball.y+=ball.vy;
+  const spd2=Math.hypot(ball.vx,ball.vy);
+  const fric=spd2>1?FRIC_BALL:FRIC_BALL_GRASS;
+  ball.vx*=fric; ball.vy*=fric;
+  if(Math.abs(ball.vx)<0.01)ball.vx=0;
+  if(Math.abs(ball.vy)<0.01)ball.vy=0;
+
+  // ── BALL WALL COLLISIONS ──
+  const gy1=H/2-GOAL_H/2, gy2=H/2+GOAL_H/2;
+  // Top/bottom
+  if(ball.y-BR<0){ball.y=BR;ball.vy=Math.abs(ball.vy)*0.5;}
+  if(ball.y+BR>H){ball.y=H-BR;ball.vy=-Math.abs(ball.vy)*0.5;}
+  // Right wall
+  if(ball.x+BR>W){
+    if(ball.y>gy1&&ball.y<gy2){scored('blue');return;}
+    ball.x=W-BR;ball.vx=-Math.abs(ball.vx)*0.55;
+  }
+  // Left wall
+  if(ball.x-BR<0){
+    if(ball.y>gy1&&ball.y<gy2){scored('red');return;}
+    ball.x=BR;ball.vx=Math.abs(ball.vx)*0.55;
+  }
+
+  // ── PLAYER–PLAYER PUSH ──
+  for(let i=0;i<players.length;i++)
+    for(let j=i+1;j<players.length;j++)
+      pushApart(players[i],players[j]);
+
+  // ── HUD hint ──
+  const near=dist(human,ball)<PR+BR+22;
+  document.getElementById('sH').textContent=
+    near?'⚡ ПРОБІЛ — сильний удар!':'WASD — рух  |  Shift — спринт';
+}
+
+// ═══════════════════════════════════════════════
+// PHYSICS HELPERS
+// ═══════════════════════════════════════════════
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function movePlayer(p){
+  p.x=clamp(p.x+p.vx,PR,W-PR);
+  p.y=clamp(p.y+p.vy,PR,H-PR);
+}
+
+// Resolve ball–player contact: push ball out, transfer some velocity
+function ballPlayerCollide(p, pushStrength){
+  const d=dist(p,ball);
+  const minD=PR+BR;
+  if(d<minD&&d>0.1){
+    const nx=(ball.x-p.x)/d, ny=(ball.y-p.y)/d;
+    // Push ball outside overlap
+    const overlap=minD-d;
+    ball.x+=nx*(overlap+0.5);
+    ball.y+=ny*(overlap+0.5);
+    // Transfer player velocity to ball (dribble feel)
+    const dot=p.vx*nx+p.vy*ny;
+    if(dot>0){
+      ball.vx=nx*Math.max(dot,0)*pushStrength*0.35 + ball.vx*0.4;
+      ball.vy=ny*Math.max(dot,0)*pushStrength*0.35 + ball.vy*0.4;
+    } else {
+      // Ball rolling into player — bounce lightly
+      const rel=ball.vx*nx+ball.vy*ny;
+      if(rel<0){ball.vx-=1.3*rel*nx;ball.vy-=1.3*rel*ny;}
+    }
+  }
+}
+
+// Deliberate kick: launch ball toward target with given power
+function kickBall(p, tx, ty, power){
+  const d=dist(p,ball);
+  if(d>PR+BR+20) return;
+  const a=Math.atan2(ty-p.y,tx-p.x);
+  // Push ball to just outside player so it doesn't re-collide instantly
+  ball.x=p.x+Math.cos(a)*(PR+BR+1);
+  ball.y=p.y+Math.sin(a)*(PR+BR+1);
+  ball.vx=Math.cos(a)*power;
+  ball.vy=Math.sin(a)*power;
+}
+
+function kickBallFromPos(px,py,tx,ty,power,bx,by){
+  // For AI: kick ball that is at bx,by toward tx,ty
+  const a=Math.atan2(ty-py,tx-px);
+  ball.x=bx+Math.cos(a)*(BR+1);
+  ball.y=by+Math.sin(a)*(BR+1);
+  ball.vx=Math.cos(a)*power;
+  ball.vy=Math.sin(a)*power;
+}
+
+function pushApart(a,b){
+  const d=dist(a,b);
+  const mn=PR*2+1;
+  if(d<mn&&d>0.1){
+    const nx=(b.x-a.x)/d,ny=(b.y-a.y)/d;
+    const push=(mn-d)*0.5;
+    a.x-=nx*push;a.y-=ny*push;
+    b.x+=nx*push;b.y+=ny*push;
+    a.x=clamp(a.x,PR,W-PR);a.y=clamp(a.y,PR,H-PR);
+    b.x=clamp(b.x,PR,W-PR);b.y=clamp(b.y,PR,H-PR);
+  }
+}
+
+function moveTo(p,tx,ty,spd){
+  const d=dist(p,{x:tx,y:ty});
+  if(d<1)return;
+  p.vx=(tx-p.x)/d*spd; p.vy=(ty-p.y)/d*spd;
+  movePlayer(p);
+}
+
+// ═══════════════════════════════════════════════
+// AI — BLUE TEAMMATES
+// ═══════════════════════════════════════════════
+function aiBlue(p,cfg){
+  const spd=cfg.aiSpd;
+  // Goalkeeper
+  if(p.role==='a_gk'){
+    const gy=clamp(ball.y,H/2-GOAL_H/2+PR,H/2+GOAL_H/2-PR);
+    moveTo(p,32,gy,spd*1.05);
+    if(p.kickCd===0){
+      ballPlayerCollide(p,4);
+      if(dist(p,ball)<PR+BR+14){
+        // GK clears toward center
+        kickBall(p,W/2+100,H/2,7);
+        p.kickCd=35;
+      }
+    }
+    return;
+  }
+
+  const dBall=dist(p,ball);
+  // Role-based positioning target
+  let tx,ty;
+  if(p.role==='a_fw'){tx=W-160;ty=H/2-70;}
+  else               {tx=W-310;ty=H/2+70;}
+
+  // If ball is on blue half or loose, chase it
+  const chase=ball.x<W*0.55 || (ball.vx<0&&ball.x<W*0.7);
+  if(chase){
+    moveTo(p,ball.x,ball.y,spd);
+  } else {
+    // Move to support position
+    const dtx=dist(p,{x:tx,y:ty});
+    if(dtx>25) moveTo(p,tx,ty,spd*0.7);
+    else{p.vx*=0.5;p.vy*=0.5;}
+  }
+
+  // Auto-push when near ball
+  if(p.kickCd===0) ballPlayerCollide(p,4);
+
+  // Shoot if close enough to opp goal
+  if(dBall<PR+BR+16 && p.kickCd===0){
+    const dGoal=dist(p,{x:W,y:H/2});
+    if(dGoal<240){
+      kickBall(p,W+80,H/2+(Math.random()-.5)*60,9);
+      p.kickCd=30;
+    } else {
+      // Pass forward
+      kickBall(p,W+80,H/2,6.5);
+      p.kickCd=28;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════
+// AI — RED OPPONENTS
+// ═══════════════════════════════════════════════
+function aiRed(p,cfg){
+  const spd=cfg.oppSpd;
+
+  // Goalkeeper
+  if(p.role==='o_gk'){
+    const gy=clamp(ball.y,H/2-GOAL_H/2+PR,H/2+GOAL_H/2-PR);
+    moveTo(p,W-32,gy,spd*1.05);
+    if(p.kickCd===0){
+      ballPlayerCollide(p,4);
+      if(dist(p,ball)<PR+BR+14){
+        kickBall(p,W/2-100,H/2,7);
+        p.kickCd=35;
+      }
+    }
+    return;
+  }
+
+  const dBall=dist(p,ball);
+  let tx,ty;
+  if(p.role==='o_fw'){tx=220;ty=H/2-70;}
+  else if(p.role==='o_md'){tx=285;ty=H/2+70;}
+  else{tx=W-280;ty=H/2;}
+
+  // Chase ball if it's on their half or incoming
+  const chase=ball.x>W*0.45 || ball.vx>0;
+  if(chase){
+    moveTo(p,ball.x,ball.y,spd);
+  } else {
+    const dtx=dist(p,{x:tx,y:ty});
+    if(dtx>25) moveTo(p,tx,ty,spd*0.65);
+    else{p.vx*=0.5;p.vy*=0.5;}
+  }
+
+  if(p.kickCd===0) ballPlayerCollide(p,4);
+
+  if(dBall<PR+BR+16&&p.kickCd===0){
+    const dGoal=dist(p,{x:0,y:H/2});
+    if(dGoal<cfg.oppShoot){
+      kickBall(p,-80,H/2+(Math.random()-.5)*50,9);
+      p.kickCd=30;
+    } else {
+      kickBall(p,-80,H/2,6.5);
+      p.kickCd=28;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function render(){
+  drawField();
+  players.forEach(drawPlayer);
+  drawBall();
+  if(goalAnim>0) drawGoalFlash();
+}
+
+function drawField(){
+  c.fillStyle='#2d8a42';
+  c.fillRect(0,0,W,H);
+  // Stripes
+  for(let x=0;x<W;x+=48){
+    c.fillStyle='rgba(0,0,0,0.045)';
+    c.fillRect(x,0,24,H);
+  }
+  // Lines
+  c.strokeStyle='rgba(255,255,255,0.4)';c.lineWidth=2;
+  c.beginPath();c.moveTo(W/2,0);c.lineTo(W/2,H);c.stroke();
+  c.beginPath();c.arc(W/2,H/2,62,0,Math.PI*2);c.stroke();
+  c.fillStyle='rgba(255,255,255,0.5)';
+  c.beginPath();c.arc(W/2,H/2,4,0,Math.PI*2);c.fill();
+  c.strokeRect(0,H/2-82,88,164);
+  c.strokeRect(W-88,H/2-82,88,164);
+  // Goals
+  drawGoal(0,H/2-GOAL_H/2,GOAL_D,GOAL_H,'L');
+  drawGoal(W-GOAL_D,H/2-GOAL_H/2,GOAL_D,GOAL_H,'R');
+}
+
+function drawGoal(gx,gy,gw,gh,side){
+  c.save();
+  c.fillStyle='rgba(255,255,255,0.1)';
+  c.fillRect(gx,gy,gw,gh);
+  c.strokeStyle='rgba(255,255,255,0.2)';c.lineWidth=1;
+  for(let y=gy;y<gy+gh;y+=12){c.beginPath();c.moveTo(gx,y);c.lineTo(gx+gw,y);c.stroke();}
+  for(let x=gx;x<gx+gw;x+=9){c.beginPath();c.moveTo(x,gy);c.lineTo(x,gy+gh);c.stroke();}
+  c.strokeStyle='#fff';c.lineWidth=4;c.lineJoin='round';
+  c.beginPath();
+  if(side==='L'){c.moveTo(gx+gw,gy);c.lineTo(gx,gy);c.lineTo(gx,gy+gh);c.lineTo(gx+gw,gy+gh);}
+  else{c.moveTo(gx,gy);c.lineTo(gx+gw,gy);c.lineTo(gx+gw,gy+gh);c.lineTo(gx,gy+gh);}
+  c.stroke();
+  c.restore();
+}
+
+function drawPlayer(p){
+  c.save();
+  // Shadow
+  c.fillStyle='rgba(0,0,0,0.2)';
+  c.beginPath();c.ellipse(p.x,p.y+PR-1,PR,5,0,0,Math.PI*2);c.fill();
+  // Body circle
+  c.beginPath();c.arc(p.x,p.y,PR,0,Math.PI*2);
+  if(p===players[0]){c.shadowColor='#ffe234';c.shadowBlur=14;}
+  c.fillStyle=p.team===0?'#1a44cc':'#cc1a1a';
+  c.fill();
+  if(p===players[0]){c.strokeStyle='#ffe234';c.lineWidth=2.5;c.stroke();}
+  c.shadowBlur=0;
+  // Emoji
+  c.font=`${PR*1.55}px serif`;
+  c.textAlign='center';c.textBaseline='middle';
+  c.fillText(p.em,p.x,p.y);
+  c.restore();
+}
+
+function drawBall(){
+  c.save();
+  c.shadowColor='rgba(0,0,0,.5)';c.shadowBlur=7;
+  c.font=`${BR*2.4}px serif`;
+  c.textAlign='center';c.textBaseline='middle';
+  c.fillText('⚽',ball.x,ball.y);
+  c.restore();
+}
+
+function drawGoalFlash(){
+  const a=Math.min(1,goalAnim/40)*0.55;
+  c.save();
+  c.globalAlpha=a;
+  c.fillStyle=goalTeam==='blue'?'#1155ee':'#cc1111';
+  c.fillRect(0,0,W,H);
+  c.restore();
+  const fa=Math.min(1,goalAnim/30);
+  c.save();
+  c.globalAlpha=fa;
+  c.font='bold 66px Fredoka One,cursive';
+  c.textAlign='center';c.textBaseline='middle';
+  c.fillStyle='#ffe234';
+  c.shadowColor='rgba(0,0,0,.6)';c.shadowBlur=14;
+  c.fillText(goalTeam==='blue'?'⚽ ГОЛ! 🎉':'😤 ГОЛ! 💀',W/2,H/2);
+  c.restore();
+}
+
+// ═══════════════════════════════════════════════
+// FIREWORKS
+// ═══════════════════════════════════════════════
+function fireworks(n){
+  const em=['🎉','🎊','⭐','🌟','🏆','🎈','✨','💥','🥇'];
+  for(let i=0;i<n;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div');
+      el.className='fw';
+      el.textContent=em[~~(Math.random()*em.length)];
+      el.style.left=Math.random()*88+4+'vw';
+      el.style.top=Math.random()*65+10+'vh';
+      el.style.animationDelay=Math.random()*.25+'s';
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),2000);
+    },i*100);
+  }
+}
+</script>
+</body>
+</html>
