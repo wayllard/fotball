@@ -106,7 +106,7 @@ body{
   <div class="panel show" id="pStart">
     <div class="logo">⚽</div>
     <div class="gtitle">ФУТБОЛ!</div>
-    <div class="tagline">Грай, забивай, перемагай!</div>
+    <div class="tagline">Привіт, Аділь! Грай і перемагай! 🏆</div>
     <div class="diff-row">
       <button class="diff-btn sel" data-d="easy">😊 Легко</button>
       <button class="diff-btn"    data-d="medium">😤 Середній</button>
@@ -114,9 +114,9 @@ body{
     </div>
     <div class="hint-box">
       ⌨️ <b>WASD / стрілки</b> — рух гравця<br>
-      <b>Пробіл</b> — сильний удар по м'ячу<br>
+      <b>Пробіл / E / X</b> — сильний удар по м'ячу<br>
       <b>Shift</b> — спринт<br>
-      Просто підбіжи до м'яча, щоб штовхнути!
+      Підбіжи до м'яча щоб штовхнути або вдарити!
     </div>
     <button class="btn btn-y" id="bStart">▶ Грати!</button>
   </div>
@@ -124,6 +124,16 @@ body{
     <div class="res-em" id="rEm">🏆</div>
     <div class="res-ti" id="rTi">ПЕРЕМОГА!</div>
     <div class="res-su" id="rSu"></div>
+    <div id="adilMsg" style="display:none;flex-direction:column;align-items:center;gap:6px;">
+      <div style="font-size:38px;">🎂🎉⭐🎈🏅</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:28px;color:#ffe234;text-shadow:3px 3px 0 #8a6000;">
+        Вітаємо, Аділь!
+      </div>
+      <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;color:#b0f8b0;line-height:1.7;max-width:280px;">
+        Ти справжній футбольний чемпіон!<br>
+        Так тримати, друже! ⚽🌟
+      </div>
+    </div>
     <div class="brow">
       <button class="btn btn-y" id="bReplay">🔄 Ще раз</button>
       <button class="btn btn-g" id="bMenu">🏠 Меню</button>
@@ -265,7 +275,9 @@ function endGame(){
   document.getElementById('rEm').textContent=won?'🏆':draw?'🤝':'😢';
   document.getElementById('rTi').textContent=won?'ПЕРЕМОГА!':draw?'НІЧИЯ!':'ПОРАЗКА!';
   document.getElementById('rSu').textContent=`🟦 Сині ${sB} — ${sR} Червоні 🟥`;
-  if(won) fireworks(14);
+  const adilMsg=document.getElementById('adilMsg');
+  adilMsg.style.display=won?'flex':'none';
+  if(won){ fireworks(20); setTimeout(()=>fireworks(12),900); }
   panel('pResult');
 }
 function scored(team){
@@ -282,13 +294,13 @@ function scored(team){
 window.addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(e.code==='ShiftLeft'||e.code==='ShiftRight') sprint=true;
-  if((e.code==='Space'||e.code==='KeyZ')&&!kickLock){kickBtn=true;kickLock=true;}
+  if((e.code==='Space'||e.code==='KeyZ'||e.code==='KeyE'||e.code==='KeyX')&&!kickLock){kickBtn=true;kickLock=true;}
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
 });
 window.addEventListener('keyup',e=>{
   keys[e.code]=false;
   if(e.code==='ShiftLeft'||e.code==='ShiftRight') sprint=false;
-  if(e.code==='Space'||e.code==='KeyZ') kickLock=false;
+  if(e.code==='Space'||e.code==='KeyZ'||e.code==='KeyE'||e.code==='KeyX') kickLock=false;
 });
 
 function bindTouch(){
@@ -342,22 +354,20 @@ function update(){
   else{human.vx*=FRIC_PLR;human.vy*=FRIC_PLR;}
   movePlayer(human);
 
-  // ── HUMAN KICK (Space) ──
+  // ── HUMAN KICK (Space or E) — kick toward opponent goal ──
   if(kickBtn){
     kickBtn=false;
-    if(human.kickCd===0){
-      const d=dist(human,ball);
-      if(d<PR+BR+18){
-        // Kick toward opponent goal
-        kickBall(human, W*2, H/2, 10.5);
-        human.kickCd=25;
-      }
+    if(human.kickCd===0 && dist(human,ball)<PR+BR+20){
+      // Aim: from player toward RIGHT goal, with slight Y bias toward center
+      const aimY = H/2 + (ball.y - H/2) * 0.3;
+      kickBall(human, W+100, aimY, 11);
+      human.kickCd=22;
     }
   }
 
-  // ── HUMAN auto-dribble: gentle push when walking into ball ──
+  // ── HUMAN auto-dribble: push ball in direction of movement ──
   if(human.kickCd===0){
-    ballPlayerCollide(human, 3.5);
+    playerTouchBall(human);
   }
 
   // ── AI BLUE TEAMMATES ──
@@ -369,25 +379,24 @@ function update(){
   // ── BALL PHYSICS ──
   ball.x+=ball.vx; ball.y+=ball.vy;
   const spd2=Math.hypot(ball.vx,ball.vy);
-  const fric=spd2>1?FRIC_BALL:FRIC_BALL_GRASS;
+  const fric=spd2>0.5?FRIC_BALL:FRIC_BALL_GRASS;
   ball.vx*=fric; ball.vy*=fric;
-  if(Math.abs(ball.vx)<0.01)ball.vx=0;
-  if(Math.abs(ball.vy)<0.01)ball.vy=0;
+  if(Math.abs(ball.vx)<0.02)ball.vx=0;
+  if(Math.abs(ball.vy)<0.02)ball.vy=0;
 
   // ── BALL WALL COLLISIONS ──
   const gy1=H/2-GOAL_H/2, gy2=H/2+GOAL_H/2;
-  // Top/bottom
   if(ball.y-BR<0){ball.y=BR;ball.vy=Math.abs(ball.vy)*0.5;}
   if(ball.y+BR>H){ball.y=H-BR;ball.vy=-Math.abs(ball.vy)*0.5;}
-  // Right wall
-  if(ball.x+BR>W){
+  // Right wall → blue scores
+  if(ball.x+BR>=W){
     if(ball.y>gy1&&ball.y<gy2){scored('blue');return;}
-    ball.x=W-BR;ball.vx=-Math.abs(ball.vx)*0.55;
+    ball.x=W-BR;ball.vx=-Math.abs(ball.vx)*0.6;
   }
-  // Left wall
-  if(ball.x-BR<0){
+  // Left wall → red scores
+  if(ball.x-BR<=0){
     if(ball.y>gy1&&ball.y<gy2){scored('red');return;}
-    ball.x=BR;ball.vx=Math.abs(ball.vx)*0.55;
+    ball.x=BR;ball.vx=Math.abs(ball.vx)*0.6;
   }
 
   // ── PLAYER–PLAYER PUSH ──
@@ -396,9 +405,9 @@ function update(){
       pushApart(players[i],players[j]);
 
   // ── HUD hint ──
-  const near=dist(human,ball)<PR+BR+22;
+  const near=dist(human,ball)<PR+BR+24;
   document.getElementById('sH').textContent=
-    near?'⚡ ПРОБІЛ — сильний удар!':'WASD — рух  |  Shift — спринт';
+    near?'⚡ ПРОБІЛ або E — удар по воротах!':'WASD/стрілки — рух  |  Shift — спринт';
 }
 
 // ═══════════════════════════════════════════════
@@ -412,46 +421,50 @@ function movePlayer(p){
   p.y=clamp(p.y+p.vy,PR,H-PR);
 }
 
-// Resolve ball–player contact: push ball out, transfer some velocity
-function ballPlayerCollide(p, pushStrength){
+// Generic collision: pushes ball away from player, bounces if ball rolling in
+function playerTouchBall(p){
   const d=dist(p,ball);
-  const minD=PR+BR;
-  if(d<minD&&d>0.1){
-    const nx=(ball.x-p.x)/d, ny=(ball.y-p.y)/d;
-    // Push ball outside overlap
-    const overlap=minD-d;
-    ball.x+=nx*(overlap+0.5);
-    ball.y+=ny*(overlap+0.5);
-    // Transfer player velocity to ball (dribble feel)
-    const dot=p.vx*nx+p.vy*ny;
-    if(dot>0){
-      ball.vx=nx*Math.max(dot,0)*pushStrength*0.35 + ball.vx*0.4;
-      ball.vy=ny*Math.max(dot,0)*pushStrength*0.35 + ball.vy*0.4;
-    } else {
-      // Ball rolling into player — bounce lightly
-      const rel=ball.vx*nx+ball.vy*ny;
-      if(rel<0){ball.vx-=1.3*rel*nx;ball.vy-=1.3*rel*ny;}
-    }
+  const minD=PR+BR+1;
+  if(d>=minD||d<0.1) return;
+  const nx=(ball.x-p.x)/d, ny=(ball.y-p.y)/d;
+  // Resolve overlap
+  ball.x=p.x+nx*minD;
+  ball.y=p.y+ny*minD;
+  // Add player velocity component along normal (dribble)
+  const pDot=p.vx*nx+p.vy*ny;
+  const bDot=ball.vx*nx+ball.vy*ny;
+  // Only push ball if player is moving toward it or ball is moving into player
+  if(pDot>bDot){
+    const impulse=Math.min((pDot-bDot)*0.8+0.5, 4.5);
+    ball.vx+=nx*impulse;
+    ball.vy+=ny*impulse;
+  } else if(bDot<0){
+    // ball rolling into stationary player — reflect
+    ball.vx-=1.4*bDot*nx;
+    ball.vy-=1.4*bDot*ny;
   }
 }
 
-// Deliberate kick: launch ball toward target with given power
-function kickBall(p, tx, ty, power){
+// AI kick: push ball toward a target direction with given power
+// Only fires if player is actually near ball
+function aiKickToward(p, tx, ty, power){
   const d=dist(p,ball);
-  if(d>PR+BR+20) return;
-  const a=Math.atan2(ty-p.y,tx-p.x);
-  // Push ball to just outside player so it doesn't re-collide instantly
-  ball.x=p.x+Math.cos(a)*(PR+BR+1);
-  ball.y=p.y+Math.sin(a)*(PR+BR+1);
+  if(d>PR+BR+18) return false;
+  const a=Math.atan2(ty-ball.y, tx-ball.x);
+  // Reposition ball just outside player in kick direction
+  ball.x=p.x+(ball.x-p.x)/d*(PR+BR+1);
+  ball.y=p.y+(ball.y-p.y)/d*(PR+BR+1);
   ball.vx=Math.cos(a)*power;
   ball.vy=Math.sin(a)*power;
+  return true;
 }
 
-function kickBallFromPos(px,py,tx,ty,power,bx,by){
-  // For AI: kick ball that is at bx,by toward tx,ty
-  const a=Math.atan2(ty-py,tx-px);
-  ball.x=bx+Math.cos(a)*(BR+1);
-  ball.y=by+Math.sin(a)*(BR+1);
+// Human deliberate kick: toward target
+function kickBall(p, tx, ty, power){
+  if(dist(p,ball)>PR+BR+22) return;
+  const a=Math.atan2(ty-p.y, tx-p.x);
+  ball.x=p.x+Math.cos(a)*(PR+BR+2);
+  ball.y=p.y+Math.sin(a)*(PR+BR+2);
   ball.vx=Math.cos(a)*power;
   ball.vy=Math.sin(a)*power;
 }
@@ -481,51 +494,53 @@ function moveTo(p,tx,ty,spd){
 // ═══════════════════════════════════════════════
 function aiBlue(p,cfg){
   const spd=cfg.aiSpd;
-  // Goalkeeper
+  const human=players[0];
+
+  // Goalkeeper: mirror ball Y, clear toward human
   if(p.role==='a_gk'){
     const gy=clamp(ball.y,H/2-GOAL_H/2+PR,H/2+GOAL_H/2-PR);
-    moveTo(p,32,gy,spd*1.05);
-    if(p.kickCd===0){
-      ballPlayerCollide(p,4);
-      if(dist(p,ball)<PR+BR+14){
-        // GK clears toward center
-        kickBall(p,W/2+100,H/2,7);
-        p.kickCd=35;
+    moveTo(p,30,gy,spd*1.1);
+    if(p.kickCd===0 && dist(p,ball)<PR+BR+16){
+      // GK always passes to human
+      if(aiKickToward(p, human.x, human.y, 7)){
+        p.kickCd=40;
       }
     }
     return;
   }
 
   const dBall=dist(p,ball);
-  // Role-based positioning target
-  let tx,ty;
-  if(p.role==='a_fw'){tx=W-160;ty=H/2-70;}
-  else               {tx=W-310;ty=H/2+70;}
+  const dHuman=dist(p,human);
 
-  // If ball is on blue half or loose, chase it
-  const chase=ball.x<W*0.55 || (ball.vx<0&&ball.x<W*0.7);
+  // Chase ball when it's nearby or in blue half
+  const ballInBlueHalf = ball.x < W*0.5;
+  const chase = ballInBlueHalf || dBall < 130;
+
   if(chase){
-    moveTo(p,ball.x,ball.y,spd);
+    // Approach from the left side so we push ball right
+    moveTo(p, ball.x-18, ball.y, spd);
   } else {
-    // Move to support position
-    const dtx=dist(p,{x:tx,y:ty});
-    if(dtx>25) moveTo(p,tx,ty,spd*0.7);
-    else{p.vx*=0.5;p.vy*=0.5;}
+    // Run into open space ahead of human so pass has somewhere to go
+    let tx = p.role==='a_fw' ? human.x+90 : human.x+60;
+    let ty = p.role==='a_fw' ? H/2-80 : H/2+80;
+    tx = clamp(tx, PR, W-PR);
+    moveTo(p, tx, ty, spd*0.75);
   }
 
-  // Auto-push when near ball
-  if(p.kickCd===0) ballPlayerCollide(p,4);
+  // Touch ball: only push if player is to the LEFT of ball
+  if(p.kickCd===0 && dBall < PR+BR+6){
+    if(p.x <= ball.x+5) playerTouchBall(p);
+  }
 
-  // Shoot if close enough to opp goal
-  if(dBall<PR+BR+16 && p.kickCd===0){
-    const dGoal=dist(p,{x:W,y:H/2});
-    if(dGoal<240){
-      kickBall(p,W+80,H/2+(Math.random()-.5)*60,9);
+  // When close to ball — always pass directly to human player
+  if(p.kickCd===0 && dBall < PR+BR+16){
+    // Add a tiny lead — pass slightly ahead of where human is moving
+    const leadX = human.x + human.vx*8;
+    const leadY = human.y + human.vy*8;
+    // Power based on distance to human
+    const pwr = clamp(dist(p,human)*0.055 + 4, 4.5, 9);
+    if(aiKickToward(p, leadX, leadY, pwr)){
       p.kickCd=30;
-    } else {
-      // Pass forward
-      kickBall(p,W+80,H/2,6.5);
-      p.kickCd=28;
     }
   }
 }
@@ -536,46 +551,46 @@ function aiBlue(p,cfg){
 function aiRed(p,cfg){
   const spd=cfg.oppSpd;
 
-  // Goalkeeper
+  // Goalkeeper: mirror ball Y, stay near right goal
   if(p.role==='o_gk'){
     const gy=clamp(ball.y,H/2-GOAL_H/2+PR,H/2+GOAL_H/2-PR);
-    moveTo(p,W-32,gy,spd*1.05);
-    if(p.kickCd===0){
-      ballPlayerCollide(p,4);
-      if(dist(p,ball)<PR+BR+14){
-        kickBall(p,W/2-100,H/2,7);
-        p.kickCd=35;
+    moveTo(p,W-30,gy,spd*1.1);
+    if(p.kickCd===0 && dist(p,ball)<PR+BR+16){
+      if(aiKickToward(p, 0, H/2+(Math.random()-.5)*80, 8)){
+        p.kickCd=40;
       }
     }
     return;
   }
 
   const dBall=dist(p,ball);
-  let tx,ty;
-  if(p.role==='o_fw'){tx=220;ty=H/2-70;}
-  else if(p.role==='o_md'){tx=285;ty=H/2+70;}
-  else{tx=W-280;ty=H/2;}
+  const ballInRedHalf = ball.x > W*0.5;
+  const chase = ballInRedHalf || dBall < 120;
 
-  // Chase ball if it's on their half or incoming
-  const chase=ball.x>W*0.45 || ball.vx>0;
   if(chase){
-    moveTo(p,ball.x,ball.y,spd);
+    // Approach from the RIGHT side of ball so we push it left
+    const approachX = ball.x + 20;
+    const approachY = ball.y;
+    moveTo(p, approachX, approachY, spd);
   } else {
-    const dtx=dist(p,{x:tx,y:ty});
-    if(dtx>25) moveTo(p,tx,ty,spd*0.65);
-    else{p.vx*=0.5;p.vy*=0.5;}
+    let tx = p.role==='o_fw' ? 150 : 280;
+    let ty = p.role==='o_fw' ? H/2-75 : H/2+75;
+    moveTo(p, tx, ty, spd*0.7);
   }
 
-  if(p.kickCd===0) ballPlayerCollide(p,4);
+  // Touch ball: only push if player is to the RIGHT of ball (pushes it left)
+  if(p.kickCd===0 && dBall < PR+BR+6){
+    const pushingLeft = p.x >= ball.x - 5;
+    if(pushingLeft) playerTouchBall(p);
+  }
 
-  if(dBall<PR+BR+16&&p.kickCd===0){
+  // Deliberate kick toward LEFT goal
+  if(p.kickCd===0 && dBall < PR+BR+16){
     const dGoal=dist(p,{x:0,y:H/2});
-    if(dGoal<cfg.oppShoot){
-      kickBall(p,-80,H/2+(Math.random()-.5)*50,9);
-      p.kickCd=30;
-    } else {
-      kickBall(p,-80,H/2,6.5);
-      p.kickCd=28;
+    const pwr = dGoal < cfg.oppShoot ? 9.5 : 7;
+    const aimY = H/2+(Math.random()-.5)*50;
+    if(aiKickToward(p, -60, aimY, pwr)){
+      p.kickCd=32;
     }
   }
 }
