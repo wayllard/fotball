@@ -106,7 +106,7 @@ body{
   <div class="panel show" id="pStart">
     <div class="logo">⚽</div>
     <div class="gtitle">ФУТБОЛ!</div>
-    <div class="tagline">Привіт, Аділь! Грай і перемагай! 🏆</div>
+    <div class="tagline">Грай, забивай, перемагай!</div>
     <div class="diff-row">
       <button class="diff-btn sel" data-d="easy">😊 Легко</button>
       <button class="diff-btn"    data-d="medium">😤 Середній</button>
@@ -124,16 +124,6 @@ body{
     <div class="res-em" id="rEm">🏆</div>
     <div class="res-ti" id="rTi">ПЕРЕМОГА!</div>
     <div class="res-su" id="rSu"></div>
-    <div id="adilMsg" style="display:none;flex-direction:column;align-items:center;gap:6px;">
-      <div style="font-size:38px;">🎂🎉⭐🎈🏅</div>
-      <div style="font-family:'Fredoka One',cursive;font-size:28px;color:#ffe234;text-shadow:3px 3px 0 #8a6000;">
-        Вітаємо, Аділь!
-      </div>
-      <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;color:#b0f8b0;line-height:1.7;max-width:280px;">
-        Ти справжній футбольний чемпіон!<br>
-        Так тримати, друже! ⚽🌟
-      </div>
-    </div>
     <div class="brow">
       <button class="btn btn-y" id="bReplay">🔄 Ще раз</button>
       <button class="btn btn-g" id="bMenu">🏠 Меню</button>
@@ -275,9 +265,7 @@ function endGame(){
   document.getElementById('rEm').textContent=won?'🏆':draw?'🤝':'😢';
   document.getElementById('rTi').textContent=won?'ПЕРЕМОГА!':draw?'НІЧИЯ!':'ПОРАЗКА!';
   document.getElementById('rSu').textContent=`🟦 Сині ${sB} — ${sR} Червоні 🟥`;
-  const adilMsg=document.getElementById('adilMsg');
-  adilMsg.style.display=won?'flex':'none';
-  if(won){ fireworks(20); setTimeout(()=>fireworks(12),900); }
+  if(won) fireworks(14);
   panel('pResult');
 }
 function scored(team){
